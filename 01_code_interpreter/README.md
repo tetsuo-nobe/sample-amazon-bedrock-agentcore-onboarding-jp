@@ -1,83 +1,83 @@
-# AgentCore Code Interpreter Integration
+# AgentCore Code Interpreter統合
 
 [English](README.md) / [日本語](README_ja.md)
 
-This implementation demonstrates **AgentCore Code Interpreter** for secure AWS cost estimation calculations. The agent combines real-time AWS pricing data with sandboxed Python execution to provide accurate cost estimates for system architectures.
+この実装は、安全なAWSコスト見積もり計算のための**AgentCore Code Interpreter**を実演します。エージェントは、リアルタイムのAWS価格データとサンドボックス化されたPython実行を組み合わせて、システムアーキテクチャの正確なコスト見積もりを提供します。
 
-## Process Overview
+## プロセス概要
 
 ```mermaid
 sequenceDiagram
-    participant User as User Input
-    participant Agent as Cost Estimator Agent
-    participant MCP as AWS Pricing MCP
+    participant User as ユーザー入力
+    participant Agent as コスト見積もりエージェント
+    participant MCP as AWS価格MCP
     participant CodeInt as AgentCore Code Interpreter
 
-    User->>Agent: Architecture Description
-    Agent->>MCP: Fetch AWS Pricing Data
-    MCP-->>Agent: Current Pricing Info
-    Agent->>CodeInt: Execute Cost Calculations
-    CodeInt-->>Agent: Cost Estimates
-    Agent-->>User: Detailed Cost Breakdown
+    User->>Agent: アーキテクチャ説明
+    Agent->>MCP: AWS価格データ取得
+    MCP-->>Agent: 現在の価格情報
+    Agent->>CodeInt: コスト計算実行
+    CodeInt-->>Agent: コスト見積もり
+    Agent-->>User: 詳細なコスト内訳
 ```
 
-## Prerequisites
+## 前提条件
 
-1. **AWS credentials** - With Bedrock access permissions
-2. **Python 3.12+** - Required for async/await support
-3. **Dependencies** - Installed via `uv` (see pyproject.toml)
+1. **AWS認証情報** - Bedrockアクセス権限付き
+2. **Python 3.12+** - async/awaitサポートに必要
+3. **依存関係** - `uv`経由でインストール（pyproject.toml参照）
 
-## How to use
+## 使用方法
 
-### File Structure
+### ファイル構造
 
 ```
 01_code_interpreter/
-├── README.md                           # This documentation
+├── README.md                           # このドキュメント
 ├── cost_estimator_agent/
-│   ├── __init__.py                     # Package initialization
-│   ├── config.py                       # Configuration and prompts
-│   └── cost_estimator_agent.py         # Main agent implementation
-└── test_cost_estimator_agent.py        # Test suite
+│   ├── __init__.py                     # パッケージ初期化
+│   ├── config.py                       # 設定とプロンプト
+│   └── cost_estimator_agent.py         # メインエージェント実装
+└── test_cost_estimator_agent.py        # テストスイート
 ```
 
-### Step 1: Run Basic Cost Estimation
+### ステップ1: 基本的なコスト見積もりの実行
 
 ```bash
 cd 01_code_interpreter
 uv run python test_cost_estimator_agent.py
 ```
 
-This will test the agent with a default architecture and demonstrate both regular and streaming responses.
+これはデフォルトアーキテクチャでエージェントをテストし、通常とストリーミングの両方のレスポンスを実演します。
 
-### Step 2: Test with Custom Architecture
+### ステップ2: カスタムアーキテクチャでのテスト
 
 ```bash
 cd 01_code_interpreter
-uv run python test_cost_estimator_agent.py --architecture "Two EC2 m5.large instances with RDS MySQL"
+uv run python test_cost_estimator_agent.py --architecture "RDS MySQL を搭載した 2 つの EC2 m5.large インスタンス"
 ```
 
-### Step 3: Test Specific Functionality
+### ステップ3: 特定機能のテスト
 
 ```bash
-# Test only streaming responses
+# ストリーミングレスポンスのみテスト
 cd 01_code_interpreter
 uv run python test_cost_estimator_agent.py --tests streaming
 
-# Test only regular responses
+# 通常レスポンスのみテスト
 cd 01_code_interpreter
 uv run python test_cost_estimator_agent.py --tests regular
 ```
 
-## Key Implementation Pattern
+## 主要な実装パターン
 
-### AgentCore Code Interpreter Setup
+### AgentCore Code Interpreterセットアップ
 
 ```python
 from bedrock_agentcore.tools.code_interpreter_client import CodeInterpreter
 
 def _setup_code_interpreter(self) -> None:
-    """Setup AgentCore Code Interpreter for secure calculations"""
+    """安全な計算のためのAgentCore Code Interpreterをセットアップ"""
     try:
         logger.info("Setting up AgentCore Code Interpreter...")
         self.code_interpreter = CodeInterpreter(self.region)
@@ -88,23 +88,23 @@ def _setup_code_interpreter(self) -> None:
         raise
 ```
 
-### Secure Code Execution Tool
+### 安全なコード実行ツール
 
 ```python
 @tool
 def execute_cost_calculation(self, calculation_code: str, description: str = "") -> str:
-    """Execute cost calculations using AgentCore Code Interpreter"""
+    """AgentCore Code Interpreterを使用してコスト計算を実行"""
     if not self.code_interpreter:
         return "❌ Code Interpreter not initialized"
         
     try:
-        # Execute code in secure AgentCore sandbox
+        # 安全なAgentCoreサンドボックスでコードを実行
         response = self.code_interpreter.invoke("executeCode", {
             "language": "python",
             "code": calculation_code
         })
         
-        # Extract results from response stream
+        # レスポンスストリームから結果を抽出
         results = []
         for event in response.get("stream", []):
             if "result" in event:
@@ -119,18 +119,18 @@ def execute_cost_calculation(self, calculation_code: str, description: str = "")
         logger.exception(f"❌ Calculation failed: {e}")
 ```
 
-### Resource Management Pattern
+### リソース管理パターン
 
 ```python
 @contextmanager
 def _estimation_agent(self) -> Generator[Agent, None, None]:
-    """Context manager for cost estimation components"""        
+    """コスト見積もりコンポーネントのコンテキストマネージャー"""        
     try:
-        # Setup components in order
+        # コンポーネントを順番にセットアップ
         self._setup_code_interpreter()
         aws_pricing_client = self._setup_aws_pricing_client()
         
-        # Create agent with both execute_cost_calculation and MCP pricing tools
+        # execute_cost_calculationとMCP価格ツールの両方でエージェントを作成
         with aws_pricing_client:
             pricing_tools = aws_pricing_client.list_tools_sync()
             all_tools = [self.execute_cost_calculation] + pricing_tools
@@ -141,27 +141,27 @@ def _estimation_agent(self) -> Generator[Agent, None, None]:
             )
             yield agent
     finally:
-        # Ensure cleanup happens regardless of success/failure
+        # 成功/失敗に関係なくクリーンアップが実行されることを保証
         self.cleanup()
 ```
 
-### Streaming with Delta Handling
+### デルタ処理付きストリーミング
 
 ```python
 async def estimate_costs_stream(self, architecture_description: str) -> AsyncGenerator[dict, None]:
-    """Stream cost estimation with proper delta handling"""
+    """適切なデルタ処理でコスト見積もりをストリーミング"""
     try:
         with self._estimation_agent() as agent:
-            # Implement proper delta handling to prevent duplicates
+            # 重複を防ぐための適切なデルタ処理を実装
             previous_output = ""
             
             async for event in agent.stream_async(prompt, callback_handler=null_callback_handler):
                 if "data" in event:
                     current_chunk = str(event["data"])
                     
-                    # Handle delta calculation following Bedrock best practices
+                    # Bedrockのベストプラクティスに従ってデルタ計算を処理
                     if current_chunk.startswith(previous_output):
-                        # Extract only the new part
+                        # 新しい部分のみを抽出
                         delta_content = current_chunk[len(previous_output):]
                         if delta_content:
                             previous_output = current_chunk
@@ -170,37 +170,37 @@ async def estimate_costs_stream(self, architecture_description: str) -> AsyncGen
         yield {"error": True, "data": f"❌ Streaming failed: {e}"}
 ```
 
-## Usage Example
+## 使用例
 
 ```python
 from cost_estimator_agent import CostEstimatorAgent
 
 agent = CostEstimatorAgent()
 
-# Regular response
+# 通常レスポンス
 result = await agent.estimate_costs("""
-    A web application with:
-    - 2x EC2 t3.medium instances
+    以下の構成のウェブアプリケーション
+    - EC2 t3.medium インスタンス x 2
     - RDS MySQL db.t3.micro
-    - Application Load Balancer
-    - S3 bucket with CloudFront
+    - アプリケーションロードバランサー
+    - CloudFront を使用した S3 バケット
 """)
 print(result)
 
-# Streaming response
-async for event in agent.estimate_costs_stream("One EC2 t3.micro instance"):
+# ストリーミングレスポンス
+async for event in agent.estimate_costs_stream("1つのEC2 t3.microインスタンス"):
     if "data" in event:
         print(event["data"], end="", flush=True)
 ```
 
-## Security Benefits
+## セキュリティ上の利点
 
-- **Sandboxed execution** - Code runs in secure AgentCore environment
-- **No local code execution** - All calculations performed in AWS sandbox
-- **Input validation** - Architecture descriptions are validated before processing
-- **Resource isolation** - Each calculation runs in isolated session
+- **サンドボックス実行** - コードは安全なAgentCore環境で実行
+- **ローカルコード実行なし** - すべての計算はAWSサンドボックスで実行
+- **入力検証** - アーキテクチャ説明は処理前に検証
+- **リソース分離** - 各計算は分離されたセッションで実行
 
-## References
+## 参考資料
 
 - [AgentCore Code Interpreter Developer Guide](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/code-interpreter.html)
 - [AWS Pricing API Documentation](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/price-changes.html)
@@ -209,4 +209,4 @@ async for event in agent.estimate_costs_stream("One EC2 t3.micro instance"):
 
 ---
 
-**Next Steps**: Build upon this foundation to create more sophisticated cost analysis agents with additional AWS services and pricing scenarios. Continue with [02_runtime](../02_runtime/README.md) to deploy your agent to AWS cloud infrastructure.
+**次のステップ**: この基盤を基に、追加のAWSサービスと価格シナリオを含む、より洗練されたコスト分析エージェントを作成してください。エージェントをAWSクラウドインフラストラクチャにデプロイするには、[02_runtime](../02_runtime/README.md)に進んでください。
