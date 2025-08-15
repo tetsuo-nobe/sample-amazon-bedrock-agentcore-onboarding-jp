@@ -1,7 +1,5 @@
 # AgentCore Code Interpreter統合
 
-[English](README.md) / [日本語](README_ja.md)
-
 この実装は、安全なAWSコスト見積もり計算のための**AgentCore Code Interpreter**を実演します。エージェントは、リアルタイムのAWS価格データとサンドボックス化されたPython実行を組み合わせて、システムアーキテクチャの正確なコスト見積もりを提供します。
 
 ## プロセス概要
