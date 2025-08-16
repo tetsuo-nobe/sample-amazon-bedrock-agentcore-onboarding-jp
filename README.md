@@ -117,6 +117,7 @@ sample-amazon-bedrock-agentcore-onboarding/
 
 ### システム要件
 - **Python 3.11+** と `uv` パッケージマネージャー
+    - uv を pip でインストールする場合: `pip install uv`
 - **AWS CLI** 適切な権限で設定済み
 - **AWSアカウント** Bedrock AgentCore（プレビュー）へのアクセス付き
 - **Amazon Bedrock** 必要なモデルへのアクセス付き
