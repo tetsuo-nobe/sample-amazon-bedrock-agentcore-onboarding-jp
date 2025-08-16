@@ -126,7 +126,7 @@ sample-amazon-bedrock-agentcore-onboarding/
 ```bash
 # リポジトリをクローン
 git clone <repository-url>
-cd sample-amazon-bedrock-agentcore-onboarding
+cd sample-amazon-bedrock-agentcore-onboarding-jp
 
 # 依存関係をインストール
 uv sync
