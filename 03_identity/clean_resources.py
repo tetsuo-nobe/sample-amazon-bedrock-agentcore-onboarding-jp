@@ -59,7 +59,7 @@ def clean_resources():
         agentRuntimeId=runtime_id
     )
 
-    os.remove(".agentcore.yaml")
+    os.remove(".agentcore.json")
     os.remove("inbound_authorizer.json")
 
 

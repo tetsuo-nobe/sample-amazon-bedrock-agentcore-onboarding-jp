@@ -31,7 +31,7 @@ def clean_resources():
     print(f"Deleting gateway {gateway_id}.")
     gateway_client.delete_gateway(gatewayIdentifier=gateway_id)
 
-    os.remove(".agentcore.yaml")
+    os.remove(".agentcore.json")
     os.remove("outbound_gateway.json")
 
 

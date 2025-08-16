@@ -1,1 +1,0 @@
-# sample-amazon-bedrock-agentcore-onboarding-jp

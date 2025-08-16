@@ -8,7 +8,7 @@ def clean_resources():
     for memory in client.list_memories():
         memory_id = memory.get("id")
         if memory_id.startswith("cost_estimator_memory"):
-            print(f"Delete {memori_id}.")
+            print(f"Delete {memory_id}.")
             client.delete_memory_and_wait(memory_id)
 
 
