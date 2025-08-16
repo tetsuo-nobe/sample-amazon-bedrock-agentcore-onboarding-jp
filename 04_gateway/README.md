@@ -1,110 +1,108 @@
-# AgentCore Outbound Gateway Integration
+# AgentCore Outbound Gateway 統合
 
-[English](README.md) / [日本語](README_ja.md)
+この実装では、`markdown_to_email` ツールを提供するLambda統合を持つ **AgentCore Outbound Gateway** を、`01_code_interpreter` のコスト見積もり機能とGatewayのメール機能の両方を使用するStrands Agentと組み合わせてデモンストレーションします。
 
-This implementation demonstrates **AgentCore Outbound Gateway** with Lambda integration that provides a `markdown_to_email` tool, combined with a Strands Agent that uses both the cost estimator from `01_code_interpreter` and the Gateway's email functionality.
-
-## Process Overview
+## プロセス概要
 
 ```mermaid
 sequenceDiagram
     participant Agent as Strands Agent
     participant Gateway as AgentCore Gateway
     participant Cognito as Cognito OAuth
-    participant Lambda as Lambda Function
+    participant Lambda as Lambda関数
     participant SES as Amazon SES
-    participant CostEst as Cost Estimator
+    participant CostEst as コスト見積もり
 
-    Agent->>Cognito: OAuth M2M Flow
-    Cognito-->>Agent: Access Token
-    Agent->>CostEst: Estimate AWS costs
-    CostEst-->>Agent: Cost estimation
-    Agent->>Gateway: MCP Request + Token (markdown_to_email)
-    Gateway->>Gateway: Validate Token
-    Gateway->>Lambda: Invoke markdown_to_email
-    Lambda->>SES: Send HTML email
-    SES-->>Lambda: Email sent
-    Lambda-->>Gateway: Results
-    Gateway-->>Agent: MCP Response
+    Agent->>Cognito: OAuth M2Mフロー
+    Cognito-->>Agent: アクセストークン
+    Agent->>CostEst: AWSコスト見積もり
+    CostEst-->>Agent: コスト見積もり結果
+    Agent->>Gateway: MCPリクエスト + トークン (markdown_to_email)
+    Gateway->>Gateway: トークン検証
+    Gateway->>Lambda: markdown_to_email呼び出し
+    Lambda->>SES: HTMLメール送信
+    SES-->>Lambda: メール送信完了
+    Lambda-->>Gateway: 結果
+    Gateway-->>Agent: MCPレスポンス
 ```
 
-## Prerequisites
+## 前提条件
 
-1. **Identity setup** - Complete `03_identity` setup first for OAuth authentication
-2. **AWS SAM CLI** - For Lambda deployment
-3. **Amazon SES** - Verified sender email address
-4. **AWS credentials** - With Gateway, Lambda, and SES permissions
-5. **Dependencies** - Installed via `uv` (see pyproject.toml)
+1. **Identityセットアップ** - OAuth認証のためにまず `03_identity` のセットアップを完了してください
+2. **AWS SAM CLI** - Lambdaデプロイ用
+3. **Amazon SES** - 検証済みの送信者メールアドレス
+4. **AWS認証情報** - Gateway、Lambda、SESの権限付き
+5. **依存関係** - `uv` 経由でインストール (pyproject.tomlを参照)
 
-## How to use
+## 使用方法
 
-### File Structure
+### ファイル構成
 
 ```
 04_gateway/
-├── README.md                      # This documentation
-├── src/app.py                     # Lambda function implementation
-├── template.yaml                  # SAM template for Lambda
-├── deploy.sh                      # Lambda deployment script
-├── setup_outbound_gateway.py      # Gateway setup with Cognito
-├── test_gateway.py                # Gateway testing with Strands Agent
-└── outbound_gateway.json          # Generated configuration
+├── README.md                      # このドキュメント
+├── src/app.py                     # Lambda関数の実装
+├── template.yaml                  # Lambda用SAMテンプレート
+├── deploy.sh                      # Lambdaデプロイスクリプト
+├── setup_outbound_gateway.py      # Cognitoを使ったGatewayセットアップ
+├── test_gateway.py                # Strands AgentでのGatewayテスト
+└── outbound_gateway.json          # 生成された設定ファイル
 ```
 
-### Step 1: Deploy Lambda Function
+### ステップ 1: Lambda関数のデプロイ
 
 ```bash
 cd 04_gateway
 ./deploy.sh your-verified-email@example.com
 ```
 
-This deploys the Lambda function using SAM with SES email functionality and saves configuration to `outbound_gateway.json`.
-Please verify your email address for Amazon SES.
+SESメール機能を持つLambda関数をSAMでデプロイし、設定を `outbound_gateway.json` に保存します。
+Amazon SES用にメールアドレスを検証してください。
 
-### Step 2: Create Outbound Gateway
+### ステップ 2: Outbound Gatewayの作成
 
 ```bash
 cd 04_gateway
 uv run setup_outbound_gateway.py
 ```
 
-This creates the Gateway with OAuth authentication from `03_identity` and Lambda target integration.
+`03_identity` かOAuth認証とLambdaターゲット統合を持つGatewayを作成します。
 
-### Step 3: Test Gateway Integration
+### ステップ 3: Gateway統合のテスト
 
 ```bash
 cd 04_gateway
-# Test with architecture description and email address
-uv run test_gateway.py --architecture "A web app with ALB and 2 EC2 instances" --address recipient@example.com
+# アーキテクチャ説明とメールアドレスでテスト
+uv run test_gateway.py --architecture "ALBと2つのEC2インスタンスを使用したWebアプリ" --address recipient@example.com
 ```
 
-## Key Implementation Pattern
+## 主要な実装パターン
 
-### Lambda Function with Markdown-to-Email Tool
+### Markdown-to-Emailツールを持つLambda関数
 
-The Lambda function provides a `markdown_to_email` tool that converts markdown content to HTML and sends it via Amazon SES:
+Lambda関数は、markdownコンテンツをHTMLに変換し、Amazon SES経由で送信する `markdown_to_email` ツールを提供します：
 
 ```python
 def lambda_handler(event, context):
-    """Handle markdown_to_email tool invocation from Gateway"""
+    """Gatewayからのmarkdown_to_emailツール呼び出しを処理"""
     try:
-        # Extract tool name from Gateway context
+        # Gatewayコンテキストからツール名を抽出
         tool_name = context.client_context.custom.get('bedrockAgentCoreToolName', '')
         
-        # Remove Gateway prefix (format: targetName___toolName)
+        # Gatewayプレフィックスを除去 (形式: targetName___toolName)
         if "___" in tool_name:
             tool_name = tool_name.split("___")[-1]
         
-        # Verify this is the markdown_to_email tool
+        # markdown_to_emailツールであることを確認
         if tool_name != 'markdown_to_email':
             return {'statusCode': 400, 'body': f"Unknown tool: {tool_name}"}
         
-        # Extract parameters from event
+        # イベントからパラメータを抽出
         markdown_text = event.get('markdown_text', '')
         email_address = event.get('email_address', '')
         subject = event.get('subject', 'AWS Cost Estimation Report')
         
-        # Convert markdown to HTML and send email
+        # markdownをHTMLに変換してメール送信
         result = send_markdown_email(markdown_text, email_address, subject)
         
         return {'statusCode': 200, 'body': result}
@@ -114,13 +112,13 @@ def lambda_handler(event, context):
         return {'statusCode': 500, 'body': f"Error: {str(e)}"}
 ```
 
-### Gateway Creation with Cognito OAuth
+### Cognito OAuthを使ったGateway作成
 
 ```python
 def setup_gateway(provider_name: str = PROVIDER_NAME, force: bool = False) -> dict:
-    """Setup Gateway with Cognito OAuth authentication"""
+    """Cognito OAuth認証でGatewayをセットアップ"""
     
-    # Load identity configuration from 03_identity
+    # 03_identityからidentity設定を読み込み
     with open(IDENTITY_FILE) as f:
         identity_config = json.load(f)
 
@@ -132,7 +130,7 @@ def setup_gateway(provider_name: str = PROVIDER_NAME, force: bool = False) -> di
         }
     }
     
-    # Create MCP Gateway
+    # MCP Gatewayを作成
     gateway = gateway_client.create_mcp_gateway(
         name=gateway_name,
         role_arn=None,
@@ -140,7 +138,7 @@ def setup_gateway(provider_name: str = PROVIDER_NAME, force: bool = False) -> di
         enable_semantic_search=False
     )
     
-    # Add Lambda target with markdown_to_email tool schema
+    # markdown_to_emailツールスキーマでLambdaターゲットを追加
     tool_schema = [{
         "name": "markdown_to_email",
         "description": "Convert Markdown content to email format",
@@ -179,16 +177,16 @@ def setup_gateway(provider_name: str = PROVIDER_NAME, force: bool = False) -> di
     }
 ```
 
-### Strands Agent Integration with MCP Client
+### MCP Clientを使ったStrands Agent統合
 
 ```python
 def estimate_and_send(architecture_description, address):
-    """Test Gateway using Strands Agent with MCP client"""
+    """MCPクライアントでStrands Agentを使ってGatewayをテスト"""
     
-    # Get OAuth access token
+    # OAuthアクセストークンを取得
     access_token = asyncio.run(get_access_token())
     
-    # Create MCP client with authentication
+    # 認証付きMCPクライアントを作成
     def create_transport():
         return streamablehttp_client(
             GATEWAY_URL,
@@ -197,11 +195,11 @@ def estimate_and_send(architecture_description, address):
 
     mcp_client = MCPClient(create_transport)
     
-    # Combine local cost estimator tool with Gateway tools
-    tools = [cost_estimator_tool]  # Local tool
+    # ローカルコスト見積もりツールとGatewayツールを結合
+    tools = [cost_estimator_tool]  # ローカルツール
     
     with mcp_client:
-        # Get tools from Gateway (markdown_to_email)
+        # Gatewayからツールを取得 (markdown_to_email)
         more_tools = True
         pagination_token = None
         while more_tools:
@@ -212,51 +210,51 @@ def estimate_and_send(architecture_description, address):
             else:
                 pagination_token = tmp_tools.pagination_token
 
-        # Create agent with both local and Gateway tools
+        # ローカルとGatewayの両方のツールでエージェントを作成
         agent = Agent(
             system_prompt=(
-                "Your are a professional solution architect. Please estimate cost of AWS platform."
-                "1. Please summarize customer's requirement to `architecture_description` in 10~50 words."
-                "2. Pass `architecture_description` to 'cost_estimator_tool'."
-                "3. Send estimation by `markdown_to_email`."
+                "あなたはプロのソリューションアーキテクトです。AWSプラットフォームのコストを概算してください。"
+                "1. 顧客の要件を `architecture_description` に 10 ～ 50 語で要約してください。"
+                "2. `architecture_description` を 'cost_estimator_tool' に渡します。"
+                "3. 見積書を `markdown_to_email` で送信します。"
             ),
             tools=tools
         )
         
-        # Agent will use both tools automatically
+        # エージェントは両方のツールを自動的に使用
         prompt = f"requirements: {architecture_description}, address: {address}"
         result = agent(prompt)
         return result
 ```
 
-## Usage Example
+## 使用例
 
 ```bash
-# Deploy Lambda function with SES sender email
+# SES送信者メールでLambda関数をデプロイ
 ./deploy.sh your-verified-email@example.com
 
-# Create Gateway with Cognito authentication
+# Cognito認証でGatewayを作成
 uv run setup_outbound_gateway.py
 
-# Test with Strands Agent - estimates costs and emails results
-uv run test_gateway.py --architecture "A web app with ALB and 2 EC2 instances" --address recipient@example.com
+# Strands Agentでテスト - コスト見積もりとメール送信結果
+uv run test_gateway.py --architecture "ALBと2つのEC2インスタンスを使用したWebアプリ" --address recipient@example.com
 ```
 
-## Integration Benefits
+## 統合のメリット
 
-- **Serverless architecture** - Lambda scales automatically with demand
-- **OAuth security** - Cognito provides enterprise-grade authentication
-- **MCP compatibility** - Standard protocol for tool integration
-- **Email delivery** - Automated markdown-to-HTML email conversion via SES
-- **Multi-tool orchestration** - Combines local cost estimation with remote email functionality
+- **サーバーレスアーキテクチャ** - Lambdaは需要に応じて自動スケール
+- **OAuthセキュリティ** - Cognitoがエンタープライズグレードの認証を提供
+- **MCP互換性** - ツール統合の標準プロトコル
+- **メール配信** - SES経由でのmarkdown-to-HTMLメール変換の自動化
+- **マルチツールオーケストレーション** - ローカルコスト見積もりとリモートメール機能を結合
 
-## References
+## 参考資料
 
-- [AgentCore Gateway Developer Guide](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway.html)
-- [AWS SAM Documentation](https://docs.aws.amazon.com/serverless-application-model/)
-- [Cognito OAuth Integration](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-app-integration.html)
-- [MCP Protocol Specification](https://modelcontextprotocol.io/introduction)
+- [AgentCore Gateway開発者ガイド](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway.html)
+- [AWS SAMドキュメント](https://docs.aws.amazon.com/serverless-application-model/)
+- [Cognito OAuth統合](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-app-integration.html)
+- [MCPプロトコル仕様cation](https://modelcontextprotocol.io/introduction)
 
 ---
 
-**Next Steps**: Use the Gateway as an MCP server in your applications or integrate with AgentCore Identity for enhanced security.
+**次のステップ**: ゲートウェイをアプリケーション内の MCP サーバーとして使用するか、AgentCore Identity と統合してセキュリティを強化します。
