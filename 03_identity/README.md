@@ -69,7 +69,7 @@ uv run python test_identity_agent.py
 from strands import tool
 from bedrock_agentcore.identity.auth import requires_access_token
 
-@tool(name="cost_estimator_tool", description="Estimate cost of AWS from architecture description")
+@tool(name="cost_estimator_tool", description="アーキテクチャの説明からAWSのコストを見積もる")
 @requires_access_token(
     provider_name=OAUTH_PROVIDER,
     scopes=[OAUTH_SCOPE],
