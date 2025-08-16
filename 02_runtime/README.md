@@ -65,7 +65,7 @@ uv run agentcore configure --entrypoint ./deployment/invoke.py --name cost_estim
 # エージェントを起動
 uv run agentcore launch
 
-# エージェントをテスト
+# エージェントをテスト(レスポンスに含まれる Agent の回答はバイト配列で表示される)
 uv run agentcore invoke '{"prompt": "SSH用に小規模なEC2を用意したいのですが、費用はいくらくらいでしょうか?"}'
 ```
 
