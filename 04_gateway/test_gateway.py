@@ -69,7 +69,6 @@ async def get_access_token(access_token):
 
 def estimate_and_send(architecture_description, address):
     logger.info("Testing Gateway with MCP client (Strands Agents)...")
-    print(GATEWAY_URL)
     # まずアクセストークンを取得
     access_token = asyncio.run(get_access_token())
     # HTTPクライアントを直接返すトランスポート呼び出し可能関数を作成
