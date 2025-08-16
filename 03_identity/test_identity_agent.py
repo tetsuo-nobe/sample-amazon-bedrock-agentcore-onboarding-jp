@@ -1,9 +1,9 @@
 """
-Test the AgentCore Identity by invoking cost_estimator_agent_with_identity
+cost_estimator_agent_with_identityを呼び出してAgentCore Identityをテスト
 
-This script demonstrates how to:
-1. Obtain an OAuth token from AgentCore Identity
-2. Call the Runtime with obtained token
+このスクリプトは以下の方法を実演します:
+1. AgentCore IdentityからOAuthトークンを取得
+2. 取得したトークンでRuntimeを呼び出し
 """
 
 import json
@@ -18,7 +18,7 @@ from strands import Agent
 from strands import tool
 from bedrock_agentcore.identity.auth import requires_access_token
 
-# Configure logging with more verbose output
+# より詳細な出力でログを設定
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -37,7 +37,7 @@ with CONFIG_FILE.open('r') as f:
     RUNTIME_URL = config["runtime"]["url"]
 
 
-@tool(name="cost_estimator_tool", description="Estimate cost of AWS from architecture description")
+@tool(name="cost_estimator_tool", description="アーキテクチャの説明からAWSのコストを見積もる")
 @requires_access_token(
     provider_name= OAUTH_PROVIDER,
     scopes= [OAUTH_SCOPE],
@@ -68,22 +68,22 @@ async def cost_estimator_tool(architecture_description, access_token: str) -> st
 
 
 async def main():
-    """Main test function"""
-    # Parse command line arguments
-    parser = argparse.ArgumentParser(description='Test AgentCore Gateway with different methods')
+    """メインテスト関数"""
+    # コマンドライン引数を解析
+    parser = argparse.ArgumentParser(description='さまざまな方法で AgentCore Gateway をテストする')
     parser.add_argument(
         '--architecture',
         type=str,
-        default="A simple web application with an Application Load Balancer, 2 EC2 t3.medium instances, and an RDS MySQL database in us-east-1.",
-        help='Architecture description for cost estimation. Default: A simple web application with ALB, 2 EC2 instances, and RDS MySQL'
+        default="Application Load Balancer、2 つの EC2 t3.medium インスタンス、および us-east-1 の RDS MySQL データベースを備えたシンプルな Web アプリケーション。",
+        help='コスト見積もりのためのアーキテクチャの説明。デフォルト: ALB、2つのEC2インスタンス、RDS MySQLを使用したシンプルなウェブアプリケーション。'
     )
     args = parser.parse_args()
 
     agent = Agent(
         system_prompt=(
-            "Your are a professional solution architect. "
-            "You will receive architecture descriptions or requirements from customers. "
-            "Please provide estimate by using 'cost_estimator_tool'"
+            "あなたはプロのソリューション アーキテクトです。"
+            "顧客からアーキテクチャの説明や要件を受け取ります。 "
+            "「cost_estimator_tool」を使用して見積もりを提供してください。"
         ),
         tools=[cost_estimator_tool]
     )

@@ -1,83 +1,81 @@
-# AgentCore Runtime Integration
+# AgentCore Runtime統合
 
-[English](README.md) / [日本語](README_ja.md)
+この実装は、エージェント準備を自動化し、公式の[bedrock-agentcore-starter-toolkit](https://github.com/aws/bedrock-agentcore-starter-toolkit)とシームレスに統合する`prepare_agent.py`ツールを使用した**AgentCore Runtime**デプロイメントを実演します。
 
-This implementation demonstrates **AgentCore Runtime** deployment using the `prepare_agent.py` tool that automates agent preparation and seamlessly integrates with the official [bedrock-agentcore-starter-toolkit](https://github.com/aws/bedrock-agentcore-starter-toolkit).
-
-## Process Overview
+## プロセス概要
 
 ```mermaid
 sequenceDiagram
-    participant Dev as Developer
+    participant Dev as 開発者
     participant Prep as prepare_agent.py
     participant IAM as AWS IAM
     participant CLI as agentcore CLI
     participant Runtime as AgentCore Runtime
 
     Dev->>Prep: prepare --source-dir
-    Prep->>IAM: Create AgentCore Role
-    IAM-->>Prep: Role ARN
-    Prep->>Prep: Copy Source Files
-    Prep-->>Dev: Configure Command
+    Prep->>IAM: AgentCoreロール作成
+    IAM-->>Prep: ロールARN
+    Prep->>Prep: ソースファイルコピー
+    Prep-->>Dev: 設定コマンド
     Dev->>CLI: agentcore configure
-    CLI->>Runtime: Deploy Agent
+    CLI->>Runtime: エージェントデプロイ
     Dev->>CLI: agentcore invoke
-    CLI->>Runtime: Execute Agent
-    Runtime-->>CLI: Results
+    CLI->>Runtime: エージェント実行
+    Runtime-->>CLI: 結果
 ```
 
-## Prerequisites
+## 前提条件
 
-1. **Agent source code** - Complete `01_code_interpreter` implementation first
-2. **AWS credentials** - With IAM permissions for role creation
-3. **AgentCore CLI** - Install [bedrock-agentcore-starter-toolkit](https://github.com/aws/bedrock-agentcore-starter-toolkit)
-4. **Dependencies** - Installed via `uv` (see pyproject.toml)
+1. **エージェントソースコード** - まず`01_code_interpreter`の実装を完了
+2. **AWS認証情報** - ロール作成のためのIAM権限付き
+3. **AgentCore CLI** - [bedrock-agentcore-starter-toolkit](https://github.com/aws/bedrock-agentcore-starter-toolkit)をインストール
+4. **依存関係** - `uv`経由でインストール（pyproject.toml参照）
 
-## How to use
+## 使用方法
 
-### File Structure
+### ファイル構造
 
 ```
 02_runtime/
-├── README.md                    # This documentation
-├── prepare_agent.py             # Agent preparation tool
-└── deployment/                  # Generated deployment directory
-   ├── invoke.py                 # Runtime entrypoint
-   ├── requirements.txt          # Dependencies
-   └── cost_estimator_agent/     # Copied source files
+├── README.md                    # このドキュメント
+├── prepare_agent.py             # エージェント準備ツール
+└── deployment/                  # 生成されたデプロイメントディレクトリ
+   ├── invoke.py                 # Runtimeエントリーポイント
+   ├── requirements.txt          # 依存関係
+   └── cost_estimator_agent/     # コピーされたソースファイル
 ```
 
-### Step 1: Prepare Your Agent
+### ステップ1: エージェントを準備
 
 ```bash
 cd 02_runtime
 uv run prepare_agent.py --source-dir ../01_code_interpreter/cost_estimator_agent
 ```
 
-This will create deployment directory and IAM role with all necessary AgentCore permissions.
+これにより、必要なすべてのAgentCore権限を持つデプロイメントディレクトリとIAMロールが作成されます。
 
-### Step 2: Use Generated Commands
+### ステップ2: 生成されたコマンドを使用
 
-The tool provides ready-to-use `agentcore` commands:
+ツールはすぐに使用できる`agentcore`コマンドを提供します：
 
 ```bash
-# Configure the agent runtime (account id depends on your environment, please confirm outputs of prepare_agent.py)
+# エージェントランタイムを設定（アカウントIDは環境に依存、prepare_agent.pyの出力を確認してください）
 uv run agentcore configure --entrypoint ./deployment/invoke.py --name cost_estimator_agent --execution-role arn:aws:iam::123456789012:role/AgentCoreRole-cost_estimator_agent --requirements-file ./deployment/requirements.txt --disable-otel --region us-east-1
 
-# Launch the agent
+# エージェントを起動
 uv run agentcore launch
 
-# Test your agent
-uv run agentcore invoke '{"prompt": "I would like to prepare small EC2 for ssh. How much does it cost?"}'
+# エージェントをテスト
+uv run agentcore invoke '{"prompt": "SSH用に小規模なEC2を用意したいのですが、費用はいくらくらいでしょうか?"}'
 ```
 
-## Key Implementation Pattern
+## 主要な実装パターン
 
-### Agent Preparation Class
+### エージェント準備クラス
 
 ```python
 class AgentPreparer:
-    """Handles preparation of agent for deployment"""
+    """デプロイメント用のエージェント準備を処理"""
     
     def __init__(self, source_dir: str, region: str = DEFAULT_REGION):
         self.source_dir = Path(source_dir)
@@ -85,14 +83,14 @@ class AgentPreparer:
         self.iam_client = boto3.client('iam', region_name=region)
     
     def prepare(self) -> str:
-        """Prepare agent for deployment by creating deployment directory and IAM role"""
-        # Create deployment directory
+        """デプロイメントディレクトリとIAMロールを作成してエージェントをデプロイメント用に準備"""
+        # デプロイメントディレクトリを作成
         deployment_dir = self.create_source_directory()
         
-        # Create IAM role
+        # IAMロールを作成
         role_info = self.create_agentcore_role()
 
-        # Build agentcore configure command
+        # agentcore configureコマンドを構築
         command = f"agentcore configure --entrypoint {deployment_dir}/invoke.py " \
                     f"--name {self.agent_name} " \
                     f"--execution-role {role_info['role_arn']} " \
@@ -102,14 +100,14 @@ class AgentPreparer:
         return command
 ```
 
-### IAM Role Creation with AgentCore Permissions
+### AgentCore権限を持つIAMロール作成
 
 ```python
 def create_agentcore_role(self) -> dict:
-    """Create IAM role with AgentCore permissions"""
+    """AgentCore権限を持つIAMロールを作成"""
     role_name = f"AgentCoreRole-{self.agent_name}"
     
-    # Trust policy for bedrock-agentcore service
+    # bedrock-agentcoreサービス用の信頼ポリシー
     trust_policy = {
         "Version": "2012-10-17",
         "Statement": [
@@ -131,7 +129,7 @@ def create_agentcore_role(self) -> dict:
         ]
     }
     
-    # Execution policy with comprehensive AgentCore permissions
+    # 包括的なAgentCore権限を持つ実行ポリシー
     execution_policy = {
         "Version": "2012-10-17",
         "Statement": [
@@ -159,7 +157,7 @@ def create_agentcore_role(self) -> dict:
     }
 ```
 
-### Runtime Entrypoint Pattern
+### Runtimeエントリーポイントパターン
 
 ```python
 # deployment/invoke.py
@@ -177,27 +175,27 @@ if __name__ == "__main__":
     app.run()
 ```
 
-## Usage Example
+## 使用例
 
 ```python
-# Prepare agent for deployment
+# デプロイメント用にエージェントを準備
 preparer = AgentPreparer("../01_code_interpreter/cost_estimator_agent")
 configure_command = preparer.prepare()
 
-# Use generated command to deploy
+# 生成されたコマンドを使用してデプロイ
 # agentcore configure --entrypoint ./deployment/invoke.py ...
 # agentcore launch
 # agentcore invoke '{"prompt": "Cost for t3.micro EC2?"}'
 ```
 
-## Integration Benefits
+## 統合の利点
 
-- **Automated setup** - Handles deployment directory and IAM role creation
-- **Permission compliance** - Follows official AgentCore runtime permissions
-- **CLI integration** - Seamless workflow with agentcore toolkit
-- **Error handling** - Comprehensive logging and error management
+- **自動セットアップ** - デプロイメントディレクトリとIAMロール作成を処理
+- **権限コンプライアンス** - 公式のAgentCoreランタイム権限に従う
+- **CLI統合** - agentcoreツールキットとのシームレスなワークフロー
+- **エラーハンドリング** - 包括的なログとエラー管理
 
-## References
+## 参考資料
 
 - [AgentCore Runtime Developer Guide](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime.html)
 - [Runtime Permissions Documentation](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-permissions.html)
@@ -206,4 +204,4 @@ configure_command = preparer.prepare()
 
 ---
 
-**Next Steps**: Deploy your prepared agent using the generated `agentcore` commands and integrate identity authentication with [03_identity](../03_identity/README.md) for secure operations.
+**次のステップ**: 生成された`agentcore`コマンドを使用して準備されたエージェントをデプロイし、安全な操作のために[03_identity](../03_identity/README.md)でアイデンティティ認証を統合してください。

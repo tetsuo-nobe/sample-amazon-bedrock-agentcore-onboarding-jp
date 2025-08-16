@@ -1,71 +1,69 @@
-# AgentCore Identity Integration
+# AgentCore Identity統合
 
-[English](README.md) / [日本語](README_ja.md)
+この実装は、安全なRuntime呼び出しのためのOAuth 2.0認証を伴う**AgentCore Identity**を実演します。`@requires_access_token`デコレーターは、認証されたエージェント操作のための透明なトークン管理を提供します。
 
-This implementation demonstrates **AgentCore Identity** with OAuth 2.0 authentication for secure Runtime invocation. The `@requires_access_token` decorator provides transparent token management for authenticated agent operations.
-
-## Process Overview
+## プロセス概要
 
 ```mermaid
 sequenceDiagram
-    participant Agent as Strands Agent
+    participant Agent as Strandsエージェント
     participant Identity as AgentCore Identity
     participant Cognito as Cognito OAuth
-    participant Runtime as Secure Runtime
-    participant Tool as Cost Estimator Tool
+    participant Runtime as セキュアランタイム
+    participant Tool as コスト見積もりツール
 
     Agent->>Identity: @requires_access_token
-    Identity->>Cognito: OAuth M2M Flow
-    Cognito-->>Identity: Access Token
-    Identity-->>Agent: Inject Token
-    Agent->>Runtime: Authenticated Runtime Request
-    Runtime->>Tool: Execute Cost Estimation
-    Tool-->>Runtime: Results
-    Runtime-->>Agent: Response
+    Identity->>Cognito: OAuth M2Mフロー
+    Cognito-->>Identity: アクセストークン
+    Identity-->>Agent: トークン注入
+    Agent->>Runtime: 認証済みランタイムリクエスト
+    Runtime->>Tool: コスト見積もり実行
+    Tool-->>Runtime: 結果
+    Runtime-->>Agent: レスポンス
 ```
 
-## Prerequisites
+## 前提条件
 
-1. **Runtime deployed** - Complete `02_runtime` setup first
-2. **AWS credentials** - With `bedrock-agentcore-control` permissions
-3. **Dependencies** - Installed via `uv` (see pyproject.toml)
+1. **Runtimeデプロイ済み** - まず`02_runtime`のセットアップを完了
+2. **AWS認証情報** - `bedrock-agentcore-control`権限付き
+3. **依存関係** - `uv`経由でインストール（pyproject.toml参照）
 
-## How to use
+## 使用方法
 
-### File Structure
+### ファイル構造
 
 ```
 03_identity/
-├── README.md                      # This documentation
-├── setup_inbound_authorizer.py    # OAuth2 provider and secure runtime setup
-└── test_identity_agent.py         # Test agent with identity authentication
+├── README.md                      # このドキュメント
+├── setup_inbound_authorizer.py    # OAuth2プロバイダーと安全なランタイムセットアップ
+└── test_identity_agent.py         # アイデンティティ認証付きエージェントテスト
 ```
 
-### Step 1: Create OAuth2 Credential Provider and Secure Runtime
+### ステップ1: OAuth2認証情報プロバイダーと安全なランタイムを作成
 
 ```bash
 cd 03_identity
 uv run python setup_inbound_authorizer.py
 ```
 
-This script will:
-- Create a Cognito OAuth authorizer with M2M client credentials
-- Set up an AgentCore Identity OAuth2 credential provider
-- Deploy a secure runtime with JWT authorization
-- Generate configuration in `inbound_authorizer.json`
+このスクリプトは以下を実行します：
+- M2Mクライアント認証情報でCognito OAuthオーソライザーを作成
+- AgentCore Identity OAuth2認証情報プロバイダーをセットアップ
+- JWT認証付きの安全なランタイムをデプロイ
+- `inbound_authorizer.json`に設定を生成
 
-### Step 2: Test Identity-Protected Agent
+### ステップ2: アイデンティティ保護されたエージェントをテスト
 
 ```bash
 cd 03_identity
 uv run python test_identity_agent.py
 ```
 
-This will test the complete authentication flow including token acquisition and secure runtime invocation.
+これは、トークン取得と安全なランタイム呼び出しを含む完全な認証フローをテストします。
 
-## Key Implementation Pattern
+## 主要な実装パターン
 
-### Using @requires_access_token with Strands Tools
+### Strandsツールでの@requires_access_tokenの使用
 
 ```python
 from strands import tool
@@ -79,7 +77,7 @@ from bedrock_agentcore.identity.auth import requires_access_token
     force_authentication=False
 )
 async def cost_estimator_tool(architecture_description, access_token: str) -> str:
-    """Access token is automatically injected by the decorator"""
+    """アクセストークンはデコレーターによって自動的に注入されます"""
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json"
@@ -92,21 +90,21 @@ async def cost_estimator_tool(architecture_description, access_token: str) -> st
     return response.text
 ```
 
-### Agent Integration Pattern
+### エージェント統合パターン
 
 ```python
 from strands import Agent
 
 agent = Agent(
-    system_prompt="You are a professional solution architect...",
+    system_prompt="あなたはプロのソリューション アーキテクトです...",
     tools=[cost_estimator_tool]
 )
 
-# The agent automatically handles token acquisition and injection
-await agent.invoke_async("Architecture description here...")
+# エージェントはトークン取得と注入を自動的に処理します
+await agent.invoke_async("アーキテクチャの説明はここにあります...")
 ```
 
-## Usage Example
+## 使用例
 
 ```python
 import asyncio
@@ -115,33 +113,33 @@ from test_identity_agent import cost_estimator_tool
 
 agent = Agent(
     system_prompt=(
-        "Your are a professional solution architect. "
-        "You will receive architecture descriptions or requirements from customers. "
-        "Please provide estimate by using 'cost_estimator_tool'"
+        "あなたはプロのソリューション アーキテクトです。"
+        "顧客からアーキテクチャの説明や要件を受け取ります。"
+        "「cost_estimator_tool」を使用して見積もりを提供してください"
     ),
     tools=[cost_estimator_tool]
 )
 
-# Test with architecture description
+# アーキテクチャ説明でテスト
 architecture = """
-A simple web application with:
-- Application Load Balancer
-- 2x EC2 t3.medium instances  
-- RDS MySQL database in us-east-1
+以下のコンポーネントを備えたシンプルなウェブアプリケーション
+- アプリケーションロードバランサー
+- EC2 t3.medium インスタンス 2 台
+- us-east-1 の RDS MySQL データベース
 """
 
 result = await agent.invoke_async(architecture)
 print(result)
 ```
 
-## Security Benefits
+## セキュリティ上の利点
 
-- **Zero token exposure** - Tokens never appear in logs/code
-- **Automatic lifecycle management** - AgentCore handles expiration
-- **Runtime-level security** - JWT authorization at the runtime level
-- **M2M authentication** - Suitable for automated systems
+- **トークンの非公開** - トークンはログ/コードに表示されません
+- **自動ライフサイクル管理** - AgentCoreが有効期限を処理
+- **ランタイムレベルセキュリティ** - ランタイムレベルでのJWT認証
+- **M2M認証** - 自動化システムに適合
 
-## References
+## 参考資料
 
 - [AgentCore Identity Developer Guide](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/identity.html)
 - [OAuth 2.0 Client Credentials Flow](https://tools.ietf.org/html/rfc6749#section-4.4)
@@ -150,4 +148,4 @@ print(result)
 
 ---
 
-**Next Steps**: Integrate identity-protected agents into your applications using the patterns demonstrated here, or continue with [04_gateway](../04_gateway/README.md) to expose agents through MCP-compatible APIs.
+**次のステップ**: ここで実演されたパターンを使用してアイデンティティ保護されたエージェントをアプリケーションに統合するか、[04_gateway](../04_gateway/README.md)に進んでMCP互換APIを通じてエージェントを公開してください。

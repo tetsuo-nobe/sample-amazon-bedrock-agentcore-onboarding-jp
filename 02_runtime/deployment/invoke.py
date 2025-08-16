@@ -11,7 +11,7 @@ def invoke(payload):
     user_input = payload.get("prompt")
     agent = AWSCostEstimatorAgent()
 
-    # Batch
+    # バッチ
     return agent.estimate_costs(user_input)
 
 
