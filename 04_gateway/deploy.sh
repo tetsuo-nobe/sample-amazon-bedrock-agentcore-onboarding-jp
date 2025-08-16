@@ -1,9 +1,9 @@
 #!/bin/bash
-# Deploy the AgentCore Gateway Lambda function using AWS SAM
+# AWS SAMを使用してAgentCore Gateway Lambda関数をデプロイ
 
 set -e
 
-# Activate virtual environment if it exists
+# 仮想環境が存在する場合はアクティベート
 if [ -f "../.venv/bin/activate" ]; then
     echo "Activating virtual environment from parent directory..."
     source ../.venv/bin/activate
@@ -26,7 +26,7 @@ echo "Sender Email: $SES_SENDER_EMAIL"
 echo "Stack Name: $STACK_NAME"
 echo "Region: $REGION"
 
-# Verify sender email in SES
+# SESで送信者メールを検証
 echo "Verifying sender email in Amazon SES..."
 aws ses verify-email-identity --email-address "$SES_SENDER_EMAIL" --region "$REGION" || {
     echo "Warning: Failed to verify email address. You may need to verify it manually."
@@ -34,11 +34,11 @@ aws ses verify-email-identity --email-address "$SES_SENDER_EMAIL" --region "$REG
 }
 
 
-# Build the SAM application
+# SAMアプリケーションをビルド
 echo "Building SAM application..."
 sam build
 
-# Deploy the SAM application
+# SAMアプリケーションをデプロイ
 echo "Deploying SAM application..."
 sam deploy \
     --stack-name $STACK_NAME \
@@ -49,7 +49,7 @@ sam deploy \
     --no-fail-on-empty-changeset \
     --resolve-s3
 
-# Get the Lambda function ARN from stack outputs
+# スタック出力からLambda関数ARNを取得
 LAMBDA_ARN=$(aws cloudformation describe-stacks \
     --stack-name $STACK_NAME \
     --region $REGION \
@@ -61,11 +61,11 @@ if [ -z "$LAMBDA_ARN" ]; then
     exit 1
 fi
 
-# Save Lambda ARN to gateway configuration for create_gateway.py
+# create_gateway.py用にgateway設定にLambda ARNを保存
 CONFIG_FILE="outbound_gateway.json"
 echo "Saving Lambda ARN to $CONFIG_FILE..."
 
-# Create or update the configuration file with Lambda ARN
+# Lambda ARNで設定ファイルを作成または更新
 cat > $CONFIG_FILE << EOF
 {
   "lambda_arn": "$LAMBDA_ARN",
@@ -93,7 +93,7 @@ echo "- markdown_text: The markdown content to convert"
 echo "- email_address: Recipient email address"
 echo "- subject: Email subject (optional)"
 
-# Deactivate virtual environment if it was activated
+# アクティベートされていた場合は仮想環境を非アクティベート
 if [ ! -z "$VIRTUAL_ENV" ]; then
     echo "Deactivating virtual environment..."
     deactivate

@@ -1,5 +1,5 @@
 """
-Create AgentCore Gateway with Lambda target using AgentCore SDK
+AgentCore SDKを使用してLambdaターゲットを持つAgentCore Gatewayを作成
 """
 
 import json
@@ -12,7 +12,7 @@ from rich.console import Console
 from rich.panel import Panel
 from bedrock_agentcore_starter_toolkit.operations.gateway.client import GatewayClient
 
-# Configure logging
+# ログ設定
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -23,19 +23,19 @@ CONFIG_FILE = Path("outbound_gateway.json")
 
 def setup_gateway(provider_name: str = PROVIDER_NAME, force: bool = False) -> dict:
     """
-    Setup Gateway with GitHub OAuth2 credential provider.
+    GitHub OAuth2認証情報プロバイダーでGatewayをセットアップ。
     
-    This function:
-    1. Creates Gateway with Inbound Authorizer from 03_identity
-    2. Attach AWS Lambda to Gateway as Outbound target
-    3. Saves configuration to outbound_gateway.json
+    この関数は:
+    1. 03_identityからのInbound AuthorizerでGatewayを作成
+    2. AWS LambdaをOutboundターゲットとしてGatewayにアタッチ
+    3. 設定をoutbound_gateway.jsonに保存
 
     Args:
-        provider_name: Name for the credential provider
-        force: Whether to force recreation of resources
+        provider_name: 認証情報プロバイダーの名前
+        force: リソースの再作成を強制するかどうか
 
     Returns:
-        dict: Configuration
+        dict: 設定
     """
 
     config = load_config()
@@ -47,7 +47,7 @@ def setup_gateway(provider_name: str = PROVIDER_NAME, force: bool = False) -> di
     control_client = boto3.client('bedrock-agentcore-control', region_name=region)
     gateway_client = GatewayClient(region_name=region)
     
-    # If everything is complete and not forcing, show summary and exit
+    # すべてが完了しており、強制しない場合は、概要を表示して終了
     if config and has_provider and has_gateway and not force:
         logger.info("All components already configured (use --force to recreate)")
         return config
@@ -112,9 +112,9 @@ def setup_gateway(provider_name: str = PROVIDER_NAME, force: bool = False) -> di
             }
         ]
 
-        # Create lambda target with required credentialProviderConfigurations
-        # Note: toolkit's create_mcp_gateway_target doesn't handle custom target_payload + credentials
-        # Reference: https://github.com/aws/bedrock-agentcore-starter-toolkit/pull/57 
+        # 必要なcredentialProviderConfigurationsでlambdaターゲットを作成
+        # 注意: toolkitのcreate_mcp_gateway_targetはカスタムtarget_payload + credentialsを処理しない
+        # 参考: https://github.com/aws/bedrock-agentcore-starter-toolkit/pull/57 
         target_name = gateway_name + "Target"
             
         create_request = {
@@ -135,7 +135,7 @@ def setup_gateway(provider_name: str = PROVIDER_NAME, force: bool = False) -> di
 
         target_response = control_client.create_gateway_target(**create_request)            
         target_id = target_response["targetId"]
-        # Save gateway configuration immediately after creation
+        # 作成直後にgateway設定を保存
         save_config({
             "gateway": {
                 "id": gateway_id,
@@ -152,20 +152,20 @@ def setup_gateway(provider_name: str = PROVIDER_NAME, force: bool = False) -> di
 
 
 def delete_gateway(client, config):
-    """Clean up existing Gateway resources"""
-    # Delete target first
+    """既存のGatewayリソースをクリーンアップ"""
+    # まずターゲットを削除
     if 'target_id' in config and 'id' in config:
         client.delete_mcp_gateway_target(config['id'], config['target_id'])
         logger.info("Deleted Gateway target")
     
-    # Delete Gateway
+    # Gatewayを削除
     if 'id' in config:
         client.delete_mcp_gateway(config['id'])
         logger.info("Deleted Gateway")
 
 
 def load_config():
-    """Load configuration from file"""
+    """ファイルから設定を読み込み"""
     config = {}
     with CONFIG_FILE.open('r') as f:
         config = json.load(f)
@@ -173,7 +173,7 @@ def load_config():
 
 
 def save_config(updates: Optional[dict]=None, delete_key: str=""):
-    """Update configuration file with new data"""
+    """新しいデータで設定ファイルを更新"""
     config = load_config()
     
     if updates is not None:

@@ -1,8 +1,8 @@
 """
-Simple Lambda function for AgentCore Gateway that converts markdown to HTML and sends via SES
+MarkdownをHTMLに変換してSES経由で送信するAgentCore Gateway用のシンプルなLambda関数
 
-This Lambda function takes markdown text and an email address, converts the markdown
-to HTML, and sends it as an HTML email using Amazon SES.
+このLambda関数はMarkdownテキストとメールアドレスを受け取り、Markdownを
+HTMLに変換して、Amazon SESを使用してHTMLメールとして送信します。
 """
 
 import json
@@ -12,18 +12,18 @@ import boto3
 import markdown
 from botocore.exceptions import ClientError
 
-# Configure logging
+# ログ設定
 logger = logging.getLogger()
 logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
 
 
 def lambda_handler(event, context):
     """
-    Handle markdown_to_email tool invocation from Gateway
+    Gatewayからのmarkdown_to_emailツール呼び出しを処理
     
     Args:
-        event: Contains the markdown text and email address
-        context: Lambda context with Gateway metadata. Its `client_context` should contain
+        event: Markdownテキストとメールアドレスを含む
+        context: Gatewayメタデータを含むLambdaコンテキスト。その`client_context`には以下が含まれる
         ClientContext(custom={
             'bedrockAgentCoreGatewayId': 'Y02ERAYBHB'
             'bedrockAgentCoreTargetId': 'RQHDN3J002'
@@ -33,18 +33,18 @@ def lambda_handler(event, context):
         },env=None,client=None]
 
     Returns:
-        Success or error message for the email sending operation
+        メール送信操作の成功またはエラーメッセージ
     """
     try:
-        # Log the incoming request
+        # 受信リクエストをログ出力
         logger.info(f"Received event: {json.dumps(event)}")
         
-        # Extract tool name from context
+        # コンテキストからツール名を抽出
         if context and context.client_context:
             logger.info(f"Context: {context.client_context}")
             tool_name = context.client_context.custom.get('bedrockAgentCoreToolName', '')
             
-            # Remove any prefix added by Gateway (format: targetName___toolName)
+            # Gatewayによって追加されたプレフィックスを削除（形式: targetName___toolName）
             if "___" in tool_name:
                 tool_name = tool_name.split("___")[-1]
         else:
@@ -52,14 +52,14 @@ def lambda_handler(event, context):
 
         logger.info(f"Processing tool: {tool_name}")
         
-        # Verify this is the markdown_to_email tool
+        # これがmarkdown_to_emailツールであることを確認
         if tool_name != 'markdown_to_email':
             return {
                 'statusCode': 400,
                 'body': f"Unknown tool: {tool_name}"
             }
         
-        # Get required parameters from event
+        # イベントから必要なパラメータを取得
         markdown_text = event.get('markdown_text', '')
         email_address = event.get('email_address', '')
         subject = event.get('subject', 'AWS Cost Estimation Result')
@@ -76,7 +76,7 @@ def lambda_handler(event, context):
                 'body': "Missing required parameter: email_address"
             }
 
-        # Convert markdown to HTML and send email
+        # MarkdownをHTMLに変換してメールを送信
         result = convert_and_send_email(markdown_text, email_address, subject)
 
         return {
@@ -94,33 +94,33 @@ def lambda_handler(event, context):
 
 def convert_and_send_email(markdown_text, email_address, subject):
     """
-    Convert markdown to HTML and send via Amazon SES
+    MarkdownをHTMLに変換してAmazon SES経由で送信
     
     Args:
-        markdown_text: Markdown content to convert
-        email_address: Recipient email address
-        subject: Email subject line
+        markdown_text: 変換するMarkdownコンテンツ
+        email_address: 受信者のメールアドレス
+        subject: メールの件名
         
     Returns:
-        Success message with message ID
+        メッセージIDを含む成功メッセージ
     """
     try:
-        # Convert markdown to HTML with table support
+        # テーブルサポート付きでMarkdownをHTMLに変換
         logger.info("Converting markdown to HTML")
         html_content = markdown.markdown(
             markdown_text,
             extensions=['tables', 'nl2br']
         )
         
-        # Get sender email from environment variable
+        # 環境変数から送信者メールアドレスを取得
         sender_email = os.environ.get('SES_SENDER_EMAIL')
         if not sender_email:
             raise ValueError("SES_SENDER_EMAIL environment variable not set")
         
-        # Initialize SES client
+        # SESクライアントを初期化
         ses_client = boto3.client('ses')
         
-        # Send email via SES
+        # SES経由でメールを送信
         logger.info(f"Sending email to: {email_address}")
         response = ses_client.send_email(
             Source=sender_email,
@@ -138,7 +138,7 @@ def convert_and_send_email(markdown_text, email_address, subject):
                         'Charset': 'UTF-8'
                     },
                     'Text': {
-                        'Data': markdown_text,  # Include plain text version
+                        'Data': markdown_text,  # プレーンテキスト版を含める
                         'Charset': 'UTF-8'
                     }
                 }
