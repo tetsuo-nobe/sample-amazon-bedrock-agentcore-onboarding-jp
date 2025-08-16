@@ -1,7 +1,5 @@
 # AgentCore 可観測性統合
 
-[English](README.md) / [日本語](README_ja.md)
-
 この実装では、本番環境でのAIエージェントの包括的な監視、トレース、デバッグのためのAmazon CloudWatch統合を持つ **AgentCore 可観測性** をデモンストレーションします。AgentCoreは、標準化されたOpenTelemetry（OTEL）互換のテレメトリデータを通じて、エージェントのパフォーマンスをリアルタイムで可視化します。
 
 ## プロセス概要
@@ -46,7 +44,7 @@ sequenceDiagram
 
 **オプションB: CloudWatchコンソール経由の手動セットアップ**
 1. [CloudWatchコンソール](https://console.aws.amazon.com/cloudwatch)を開く
-2. **Application Signals (APM)** → **Transaction search**に移動
+2. **Application Signals (APM)** → **トランザクション検索**に移動
 3. **Enable Transaction Search**を選択
 4. **ingest spans as structured logs**のチェックボックスを選択
 5. （オプション）**X-Ray trace indexing**のパーセンテージを調整（デフォルト: 1%）
