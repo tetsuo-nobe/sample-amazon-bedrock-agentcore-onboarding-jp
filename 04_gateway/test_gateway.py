@@ -135,7 +135,6 @@ def main():
     args = parser.parse_args()
     
     try:
-        print("--- start estimate_and_send----")
         estimate_and_send(args.architecture, args.address)
     except Exception as e:
         logger.error(f"❌ Error occurred: {e}")
