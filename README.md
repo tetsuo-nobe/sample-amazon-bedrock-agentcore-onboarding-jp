@@ -192,12 +192,4 @@ uv run python clean_resources.py
 - [AWSサポート](https://aws.amazon.com/support/) アカウント固有の問題用
 - [GitHub Issues](https://github.com/aws-samples/sample-amazon-bedrock-agentcore-onboarding/issues) プロジェクト固有の質問用
 
-## コントリビューション
-
-私たちの **実装原則** に沿ったコントリビューションを歓迎します：
-
-1. **実行可能コードファースト** - すべての例は現在のAWS SDKバージョンで動作する必要があります
-2. **実用的な実装** - 包括的なコメントと実世界の使用例を含める
-3. **シンプルで洗練** - 機能を保持しながら明確さを維持
-4. **意味のある構造** - 説明的な名前と論理的な組織を使用
 
